@@ -4,10 +4,13 @@ import functools
 import os
 import signal
 import re
+import time
 
 WAIT_INCREMENT = 10
 RUN_INCREMENT = 1
-DATA_FILE = '/home/pi/dev/workfile'
+DATA_FILE = os.path.join("/", "home", "pi", "dev", "workfile")
+INITIAL_SLEEP_TIME = 1
+
 
 def last_line():
     last = None
@@ -16,9 +19,9 @@ def last_line():
             pass
     return last
 
-def time_to_next(last_log_messsage):
+def time_to_next(last_log_message):
     p =  re.compile('o.* (20.*)')
-    m = p.match(last)
+    m = p.match(last_log_message)
     last_run = m.group(1)
     print('Last run at ' + last_run)
     last_run_date = datetime.datetime.strptime(last_run, "%Y-%m-%d %H:%M:%S.%f")
@@ -53,11 +56,18 @@ def execute(status, loop):
     f.close()
     loop.call_later(increment, execute, status, loop)
 
+# First thing is sleep for a bit since the pi boots up faster
+# than the router and we want the pi to set its clock time
+# with ntp correctly when the power comes back on before we
+# start doing time comparisons.
+time.sleep(INITIAL_SLEEP_TIME)
 loop = asyncio.get_event_loop()
 for signame in ('SIGINT', 'SIGTERM'):
     loop.add_signal_handler(getattr(signal, signame),
                             functools.partial(ask_exit, signame))
+
 last = last_line();
+print(last)
 next = time_to_next(last)
 print("Next run starting in seconds: " + str(next))
 print("Event loop running forever, press Ctrl+C to interrupt.")
