@@ -1,4 +1,5 @@
 import asyncio
+import configparser
 import datetime
 import functools
 import os
@@ -6,11 +7,22 @@ import signal
 import re
 import time
 
-WAIT_INCREMENT = 10
-RUN_INCREMENT = 1
-DATA_FILE = os.path.join("/", "home", "pi", "dev", "workfile")
-INITIAL_SLEEP_TIME = 1
+WAIT_INCREMENT = 0
+RUN_INCREMENT = 0
+DATA_FILE = os.path.join("/", "home", "pi", "whatever")
+INITIAL_SLEEP_TIME = 0
 
+def initialize():
+    config = configparser.ConfigParser()
+    config.read('pump.cfg')
+    global WAIT_INCREMENT
+    global RUN_INCREMENT
+    global INITIAL_SLEEP_TIME
+    global DATA_FILE
+    WAIT_INCREMENT = int(config['DEFAULT']['RestTime'])
+    RUN_INCREMENT = int(config['DEFAULT']['RunTime'])
+    INITIAL_SLEEP_TIME = int(config['DEFAULT']['InitialRestTime'])
+    DATA_FILE = config['DEFAULT']['DataFile']
 
 def last_line():
     last = None
@@ -56,11 +68,15 @@ def execute(status, loop):
     f.close()
     loop.call_later(increment, execute, status, loop)
 
-# First thing is sleep for a bit since the pi boots up faster
+initialize()
+if RUN_INCREMENT == 0:
+    raise SystemExit
+# Next thing is sleep for a bit since the pi boots up faster
 # than the router and we want the pi to set its clock time
 # with ntp correctly when the power comes back on before we
 # start doing time comparisons.
 time.sleep(INITIAL_SLEEP_TIME)
+
 loop = asyncio.get_event_loop()
 for signame in ('SIGINT', 'SIGTERM'):
     loop.add_signal_handler(getattr(signal, signame),
