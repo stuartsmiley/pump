@@ -24,6 +24,17 @@ def initialize():
     INITIAL_SLEEP_TIME = int(config['DEFAULT']['InitialRestTime'])
     DATA_FILE = config['DEFAULT']['DataFile']
 
+def check_data_file():
+    if os.path.isfile(DATA_FILE):
+        print("Found expected data file")
+    else:
+        print("Did NOT Find expected data file " + DATA_FILE)
+        print("Seeding " + DATA_FILE)
+        seconds_in_day = 60 * 60 * 24
+        seed_delta = datetime.timedelta(seconds=seconds_in_day)
+        seed_date = datetime.datetime.now() - seed_delta
+        update_data_file('off ' + str(seed_date) + '\n')
+
 def last_line():
     last = None
     with open(DATA_FILE) as f:
@@ -47,15 +58,12 @@ def time_to_next(last_log_message):
 
 
 def ask_exit(signame):
-    f = open(DATA_FILE, 'a')
-    f.write('off and shutdown ' + str(datetime.datetime.now()) + '\n')
-    f.close()
+    update_data_file('off and shutdown ' + str(datetime.datetime.now()) + '\n')
     print("got signal %s: exit" % signame)
     loop.stop()
 
 
 def execute(status, loop):
-    f = open(DATA_FILE, 'a')
     ssr = 'off'
     increment = WAIT_INCREMENT
     if status:
@@ -64,9 +72,12 @@ def execute(status, loop):
         ssr = 'on'
         increment = RUN_INCREMENT
         status = True
-    f.write(ssr + ' ' + str(datetime.datetime.now()) + '\n')
-    f.close()
+    update_data_file(ssr + ' ' + str(datetime.datetime.now()) + '\n')
     loop.call_later(increment, execute, status, loop)
+
+def update_data_file(line):
+    with open(DATA_FILE, 'a') as f:
+        f.write(line)
 
 initialize()
 if RUN_INCREMENT == 0:
@@ -82,7 +93,8 @@ for signame in ('SIGINT', 'SIGTERM'):
     loop.add_signal_handler(getattr(signal, signame),
                             functools.partial(ask_exit, signame))
 
-last = last_line();
+check_data_file()
+last = last_line()
 print(last)
 next = time_to_next(last)
 print("Next run starting in seconds: " + str(next))
