@@ -7,7 +7,7 @@ Controlling the pump with python daemon
 3. sudo systemctl daemon-reload
 4. sudo systemctl enable pump.service
 
-* sudo systemctl stop application.service
-* sudo systemctl start application.service
-* sudo systemctl restart application.service
-* sudo systemctl status application.service
+* sudo systemctl stop pump.service
+* sudo systemctl start pump.service
+* sudo systemctl restart pump.service
+* sudo systemctl status pump.service

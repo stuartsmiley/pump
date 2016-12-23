@@ -8,7 +8,7 @@ import re
 import time
 import logging
 
-CFG_NAME = 'pump.cfg'
+CFG_NAME = '/home/pi/dev/pump/pump.cfg'
 CFG_INCREMENT = 60 * 5
 CONFIG_STAMP = os.stat(CFG_NAME).st_mtime
 WAIT_INCREMENT = 0
@@ -19,7 +19,7 @@ LAST_RUN_DATETIME = datetime.datetime.now()
 
 def initialize():
     config = configparser.ConfigParser()
-    config.read('pump.cfg')
+    config.read(CFG_NAME)
     global WAIT_INCREMENT
     global RUN_INCREMENT
     global INITIAL_SLEEP_TIME
