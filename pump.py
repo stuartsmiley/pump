@@ -7,6 +7,7 @@ import signal
 import re
 import time
 import logging
+import RPi.GPIO as GPIO
 
 CFG_NAME = '/home/pi/dev/pump/pump.cfg'
 CFG_INCREMENT = 60 * 5
@@ -61,9 +62,15 @@ def roll():
 def last_run(last_log_message):
     p =  re.compile('o.* (20.*)')
     m = p.match(last_log_message)
-    last_run = m.group(1)
-    logger.debug('Last run at ' + last_run)
-    last_run_date = datetime.datetime.strptime(last_run, "%Y-%m-%d %H:%M:%S.%f")
+    # when the power goes out the last line will be a bunch of null char 
+    # todo delete the last line and retry
+    if m:
+        last_run = m.group(1)
+        logger.debug('Last run at ' + last_run)
+        last_run_date = datetime.datetime.strptime(last_run, "%Y-%m-%d %H:%M:%S.%f")
+    else:
+        logger.warn('Power outage: file last line nothing but null chars')
+        last_run_date = datetime.datetime.now()
     return last_run_date
 
 def time_to_next(last_log_message):
@@ -78,6 +85,8 @@ def time_to_next(last_log_message):
     return next_run
 
 def ask_exit(signame):
+    GPIO.output(12, GPIO.LOW)
+    GPIO.cleanup()
     update_data_file('off and shutdown ' + str(datetime.datetime.now()) + '\n')
     logger.info("got signal %s: exit" % signame)
     loop.stop()
@@ -91,10 +100,12 @@ def execute(status, loop):
     increment = WAIT_INCREMENT
     if status:
         # turn pump off
+        GPIO.output(12, GPIO.LOW)
         status = False
     else:
         # turn pump on
         ssr = 'on'
+        GPIO.output(12, GPIO.HIGH)
         increment = RUN_INCREMENT
         status = True
     now = datetime.datetime.now()
@@ -139,6 +150,8 @@ formatter = logging.Formatter('%(asctime)s - %(threadName)s %(levelname)s : %(me
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(12, GPIO.OUT, initial=GPIO.LOW)
 check_data_file()
 last = last_line()
 logger.debug(last)
