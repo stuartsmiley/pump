@@ -60,7 +60,7 @@ def roll():
         logger.info("rolled " + DATA_FILE)
 
 def last_run(last_log_message):
-    p =  re.compile('o.* (20.*)')
+    p =  re.compile('o.* (20[0-9]{2}-.*)')
     m = p.match(last_log_message)
     # when the power goes out the last line will be a bunch of null char 
     # todo delete the last line and retry
